@@ -91,7 +91,7 @@ authForm.addEventListener("submit", async (event) => {
     if (selectedRole === "admin") {
       const data = await apiRequest("/auth/admin/login", "POST", { username: username || email, password });
       setSession(data.token, data.user);
-      window.location.href = "/pages/accueil.html";
+      window.location.href = "/pages/admin.html";
       return;
     }
 
