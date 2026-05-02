@@ -12,9 +12,6 @@ const authMessage = document.getElementById("authMessage");
 const passwordInput = document.getElementById("password");
 const togglePasswordBtn = document.getElementById("togglePasswordBtn");
 const togglePasswordIcon = document.getElementById("togglePasswordIcon");
-const academicEmailRegex = /^[^\s@]+@[^\s@]*\.ac\.ma$/i;
-
-let isLoginMode = true;
 const selectedRole = new URLSearchParams(window.location.search).get("role") || "student";
 
 if (!["student", "admin"].includes(selectedRole)) {
@@ -45,8 +42,6 @@ function updateMode() {
   const isAdmin = selectedRole === "admin";
 
   if (isAdmin) {
-    // Admin login is separate and does not allow registration.
-    isLoginMode = true;
     authTitle.textContent = "Connexion Administrateur";
     roleDescription.textContent = "Connectez-vous avec votre nom d'utilisateur admin et mot de passe.";
     nameGroup.classList.add("hidden");
@@ -59,9 +54,10 @@ function updateMode() {
     return;
   }
 
-  authTitle.textContent = isLoginMode ? "Connexion Étudiant" : "Inscription Étudiant";
-  roleDescription.textContent = "Utilisez votre compte académique pour accéder à la plateforme.";
-  nameGroup.classList.toggle("hidden", isLoginMode);
+  authTitle.textContent = "Connexion Étudiant";
+  roleDescription.textContent =
+    "Connectez-vous avec votre email académique. Pour créer un compte, cliquez sur le bouton d'inscription.";
+  nameGroup.classList.add("hidden");
   usernameGroup.classList.add("hidden");
   emailGroup.classList.remove("hidden");
   usernameInput.required = false;
@@ -70,15 +66,13 @@ function updateMode() {
   emailInput.type = "email";
   emailInput.placeholder = "nom@etu.univ.ac.ma";
   switchModeBtn.classList.remove("hidden");
-  switchModeBtn.textContent = isLoginMode
-    ? "Pas de compte ? Créez un compte étudiant"
-    : "Déjà inscrit ? Connectez-vous";
+  switchModeBtn.textContent = "Pas de compte ? Créez un compte étudiant";
 }
 
 switchModeBtn.addEventListener("click", () => {
-  isLoginMode = !isLoginMode;
-  authMessage.classList.add("hidden");
-  updateMode();
+  if (selectedRole === "student") {
+    window.location.href = "/pages/student-register-start.html";
+  }
 });
 
 authForm.addEventListener("submit", async (event) => {
@@ -86,7 +80,6 @@ authForm.addEventListener("submit", async (event) => {
   const email = document.getElementById("email").value.trim();
   const username = document.getElementById("username").value.trim();
   const password = document.getElementById("password").value;
-  const name = document.getElementById("name").value.trim();
 
   try {
     if (selectedRole === "admin") {
@@ -96,29 +89,9 @@ authForm.addEventListener("submit", async (event) => {
       return;
     }
 
-    if (isLoginMode) {
-      const data = await apiRequest("/auth/student/login", "POST", { email, password });
-      setSession(data.token, data.user);
-      window.location.href = "/pages/accueil.html";
-      return;
-    }
-
-    if (!name) {
-      showAuthMessage("Le nom est obligatoire.");
-      return;
-    }
-    if (!academicEmailRegex.test(email)) {
-      showAuthMessage("Veuillez utiliser un email académique se terminant par .ac.ma.");
-      return;
-    }
-
-    await apiRequest("/auth/student/register", "POST", { name, email, password });
-    showAuthMessage(
-      "Inscription envoyée. Votre compte sera activé après validation par un administrateur.",
-      "success"
-    );
-    isLoginMode = true;
-    updateMode();
+    const data = await apiRequest("/auth/student/login", "POST", { email, password });
+    setSession(data.token, data.user);
+    window.location.href = "/";
   } catch (error) {
     showAuthMessage(error.message);
   }

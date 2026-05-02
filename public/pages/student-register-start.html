@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inscription Étudiant - Vérification Email</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body class="d-flex align-items-center min-vh-100">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+          <div class="card shadow">
+            <div class="card-body">
+              <h3 class="mb-3 text-center">Inscription Étudiant</h3>
+              <p class="text-muted small text-center">
+                Entrez votre email académique (.ac.ma). Un lien de vérification vous sera envoyé.
+              </p>
+              <div id="registerStartMessage" class="alert hidden"></div>
+              <form id="registerStartForm">
+                <div class="mb-3">
+                  <label for="studentEmail" class="form-label">Email académique</label>
+                  <input
+                    id="studentEmail"
+                    type="email"
+                    class="form-control"
+                    placeholder="nom@etu.univ.ac.ma"
+                    required
+                  />
+                </div>
+                <button class="btn btn-primary w-100" type="submit">Envoyer le lien</button>
+              </form>
+              <a href="/pages/auth.html?role=student" class="btn btn-outline-secondary w-100 mt-2">
+                Retour à la connexion étudiant
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="/js/api.js"></script>
+    <script src="/js/student-register-start.js"></script>
+  </body>
+</html>
