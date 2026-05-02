@@ -9,7 +9,8 @@ const {
 } = require("../utils/passwordVerify");
 
 const router = express.Router();
-const academicEmailRegex = /^[^\s@]+@ac\.ma$/i;
+// Accept addresses ending with ".ac.ma" (e.g. nom@etu.univ.ac.ma).
+const academicEmailRegex = /^[^\s@]+@[^\s@]*\.ac\.ma$/i;
 
 /** Admin row may store secret in password_hash or password (legacy apps). */
 function resolveStoredPassword(row) {
@@ -29,7 +30,7 @@ router.post("/student/register", async (req, res) => {
     }
 
     if (!academicEmailRegex.test(email)) {
-      return res.status(400).json({ message: "Utilisez un email académique qui se termine par @ac.ma." });
+      return res.status(400).json({ message: "Utilisez un email académique qui se termine par .ac.ma." });
     }
 
     const existingUser = await pool.query("SELECT id FROM users WHERE email = $1", [email]);

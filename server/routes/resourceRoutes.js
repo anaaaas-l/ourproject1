@@ -23,7 +23,12 @@ router.get("/", async (req, res) => {
 
     if (search) {
       values.push(`%${search}%`);
-      query += ` AND (LOWER(r.title) LIKE LOWER($${values.length}) OR LOWER(c.name) LIKE LOWER($${values.length}))`;
+      query += ` AND (
+        LOWER(r.title) LIKE LOWER($${values.length})
+        OR LOWER(c.name) LIKE LOWER($${values.length})
+        OR LOWER(r.file_name) LIKE LOWER($${values.length})
+        OR LOWER(u.name) LIKE LOWER($${values.length})
+      )`;
     }
 
     if (categoryId) {

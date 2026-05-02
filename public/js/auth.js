@@ -12,6 +12,7 @@ const authMessage = document.getElementById("authMessage");
 const passwordInput = document.getElementById("password");
 const togglePasswordBtn = document.getElementById("togglePasswordBtn");
 const togglePasswordIcon = document.getElementById("togglePasswordIcon");
+const academicEmailRegex = /^[^\s@]+@[^\s@]*\.ac\.ma$/i;
 
 let isLoginMode = true;
 const selectedRole = new URLSearchParams(window.location.search).get("role") || "student";
@@ -67,7 +68,7 @@ function updateMode() {
   emailInput.required = true;
   emailLabel.textContent = "Email académique";
   emailInput.type = "email";
-  emailInput.placeholder = "nom@universite.edu";
+  emailInput.placeholder = "nom@etu.univ.ac.ma";
   switchModeBtn.classList.remove("hidden");
   switchModeBtn.textContent = isLoginMode
     ? "Pas de compte ? Créez un compte étudiant"
@@ -104,6 +105,10 @@ authForm.addEventListener("submit", async (event) => {
 
     if (!name) {
       showAuthMessage("Le nom est obligatoire.");
+      return;
+    }
+    if (!academicEmailRegex.test(email)) {
+      showAuthMessage("Veuillez utiliser un email académique se terminant par .ac.ma.");
       return;
     }
 
