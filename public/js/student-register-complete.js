@@ -43,11 +43,11 @@ registerCompleteForm.addEventListener("submit", async (event) => {
       name,
       password,
     });
-    showMessage(result.message || "Inscription terminée.", "success");
+    const baseNote =
+      "Votre demande est enregistrée en attente ; vous n’apparaissez pas dans les comptes actifs avant l’acceptation de l’administrateur.";
+    showMessage(`${result.message || "Inscription envoyée."} ${baseNote}`, "success");
     registerCompleteForm.reset();
-    setTimeout(() => {
-      window.location.href = "/pages/auth.html?role=student";
-    }, 2200);
+    registerCompleteForm.classList.add("hidden");
   } catch (error) {
     showMessage(error.message);
   }

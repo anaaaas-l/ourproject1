@@ -11,11 +11,14 @@ const {
 } = require("../utils/passwordVerify");
 
 const router = express.Router();
+// Étudiant : jamais d'INSERT dans `users` ici — uniquement `student_pending_registrations`.
+// L'INSERT dans `users` (role student) est réservé à PATCH /admin/students/:id/approve.
 // Accept addresses ending with ".ac.ma" (e.g. nom@etu.univ.ac.ma).
 const academicEmailRegex = /^[^\s@]+@[^\s@]*\.ac\.ma$/i;
 const tokenTtlMinutes = Number(process.env.STUDENT_SIGNUP_TOKEN_TTL_MINUTES || 30);
 
 let ensuredSignupTokensTable = false;
+let ensuredPendingRegistrationsTable = false;
 
 async function ensureSignupTokensTable() {
   if (ensuredSignupTokensTable) return;
@@ -33,6 +36,20 @@ async function ensureSignupTokensTable() {
     "CREATE INDEX IF NOT EXISTS idx_student_signup_tokens_email ON student_signup_tokens(email)"
   );
   ensuredSignupTokensTable = true;
+}
+
+async function ensureStudentPendingRegistrationsTable() {
+  if (ensuredPendingRegistrationsTable) return;
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS student_pending_registrations (
+      id SERIAL PRIMARY KEY,
+      email VARCHAR(255) NOT NULL UNIQUE,
+      name VARCHAR(255) NOT NULL,
+      password_hash TEXT NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
+    )
+  `);
+  ensuredPendingRegistrationsTable = true;
 }
 
 function buildStudentSignupLink(token) {
@@ -86,6 +103,7 @@ function resolveStoredPassword(row) {
 
 router.post("/student/register", async (req, res) => {
   try {
+    await ensureStudentPendingRegistrationsTable();
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
@@ -96,23 +114,31 @@ router.post("/student/register", async (req, res) => {
       return res.status(400).json({ message: "Utilisez un email académique qui se termine par .ac.ma." });
     }
 
-    const existingUser = await pool.query("SELECT id FROM users WHERE email = $1", [email]);
+    const existingUser = await pool.query("SELECT id FROM users WHERE LOWER(email) = LOWER($1)", [email]);
     if (existingUser.rows.length > 0) {
       return res.status(400).json({ message: "Email déjà utilisé." });
     }
 
+    const pendingRow = await pool.query("SELECT id FROM student_pending_registrations WHERE LOWER(email) = LOWER($1)", [
+      email,
+    ]);
+    if (pendingRow.rows.length > 0) {
+      return res.status(400).json({
+        message: "Une demande d'inscription est déjà en attente pour cet email.",
+      });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const result = await pool.query(
-      `INSERT INTO users (name, email, password_hash, role, account_status)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, name, email, role, account_status`,
-      [name, email, hashedPassword, "student", "pending"]
+    await pool.query(
+      `INSERT INTO student_pending_registrations (email, name, password_hash)
+       VALUES ($1, $2, $3)`,
+      [email.trim().toLowerCase(), name.trim(), hashedPassword]
     );
 
     return res.status(201).json({
-      user: result.rows[0],
-      message: "Compte étudiant créé. Veuillez attendre la validation de l'administrateur.",
+      message:
+        "Demande enregistrée. Votre compte sera créé lorsque l'administrateur aura validé votre inscription.",
     });
   } catch (error) {
     return res.status(500).json({ message: "Erreur serveur.", error: error.message });
@@ -122,6 +148,7 @@ router.post("/student/register", async (req, res) => {
 router.post("/student/register/request-link", async (req, res) => {
   try {
     await ensureSignupTokensTable();
+    await ensureStudentPendingRegistrationsTable();
     const email = String(req.body?.email || "").trim().toLowerCase();
 
     if (!email) {
@@ -134,6 +161,16 @@ router.post("/student/register/request-link", async (req, res) => {
     const existingUser = await pool.query("SELECT id FROM users WHERE LOWER(email) = LOWER($1)", [email]);
     if (existingUser.rows.length > 0) {
       return res.status(400).json({ message: "Un compte existe déjà avec cet email." });
+    }
+
+    const pendingExisting = await pool.query(
+      "SELECT id FROM student_pending_registrations WHERE LOWER(email) = LOWER($1)",
+      [email]
+    );
+    if (pendingExisting.rows.length > 0) {
+      return res.status(400).json({
+        message: "Une demande d'inscription est déjà en attente de validation pour cet email.",
+      });
     }
 
     await pool.query("UPDATE student_signup_tokens SET used = true WHERE LOWER(email) = LOWER($1) AND used = false", [
@@ -202,6 +239,7 @@ router.post("/student/register/complete", async (req, res) => {
   const client = await pool.connect();
   try {
     await ensureSignupTokensTable();
+    await ensureStudentPendingRegistrationsTable();
     const token = String(req.body?.token || "").trim();
     const name = String(req.body?.name || "").trim();
     const password = String(req.body?.password || "");
@@ -231,19 +269,24 @@ router.post("/student/register/complete", async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const createdUser = await client.query(
-      `INSERT INTO users (name, email, password_hash, role, account_status)
-       VALUES ($1, $2, $3, 'student', 'pending')
-       RETURNING id, name, email, role, account_status`,
-      [name, email, hashedPassword]
+
+    await client.query(
+      `INSERT INTO student_pending_registrations (email, name, password_hash)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (email) DO UPDATE SET
+         name = EXCLUDED.name,
+         password_hash = EXCLUDED.password_hash,
+         created_at = NOW()`,
+      [String(email).trim().toLowerCase(), name, hashedPassword]
     );
 
     await client.query("UPDATE student_signup_tokens SET used = true WHERE id = $1", [tokenId]);
     await client.query("COMMIT");
 
     return res.status(201).json({
-      user: createdUser.rows[0],
-      message: "Inscription finalisée. Votre compte étudiant est en attente de validation admin.",
+      message:
+        "Inscription finalisée. Votre demande sera examinée : le compte ne sera créé qu'après validation par un administrateur.",
+      registration: { name, email },
     });
   } catch (error) {
     await client.query("ROLLBACK");
