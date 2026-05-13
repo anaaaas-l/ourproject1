@@ -9,7 +9,8 @@ const router = express.Router();
 
 router.get("/", async (req, res) => {
   try {
-    const { search = "", categoryId = "" } = req.query;
+    const { search = "", categoryId = "", fileType = "" } = req.query;
+    const ft = String(fileType || "").toLowerCase().trim();
 
     let query = `
       SELECT r.id, r.title, r.file_name, r.file_path, r.download_count, r.like_count, r.status, r.created_at,
@@ -34,6 +35,19 @@ router.get("/", async (req, res) => {
     if (categoryId) {
       values.push(categoryId);
       query += ` AND r.category_id = $${values.length}`;
+    }
+
+    if (ft === "pdf") {
+      query += ` AND LOWER(r.file_name) LIKE '%.pdf'`;
+    } else if (ft === "word") {
+      query += ` AND (LOWER(r.file_name) LIKE '%.doc' OR LOWER(r.file_name) LIKE '%.docx')`;
+    } else if (ft === "image") {
+      query += ` AND (
+        LOWER(r.file_name) LIKE '%.png'
+        OR LOWER(r.file_name) LIKE '%.jpg'
+        OR LOWER(r.file_name) LIKE '%.jpeg'
+        OR LOWER(r.file_name) LIKE '%.webp'
+      )`;
     }
 
     query += " ORDER BY r.created_at DESC";
@@ -86,6 +100,39 @@ router.post("/", authRequired, upload.single("file"), async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ message: "Erreur serveur.", error: error.message });
+  }
+});
+
+function isPdfFileName(name) {
+  return String(name || "").toLowerCase().endsWith(".pdf");
+}
+
+router.get("/:id/view", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query("SELECT * FROM resources WHERE id = $1 AND status = 'approved'", [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Ressource introuvable." });
+    }
+
+    const resource = result.rows[0];
+    if (!isPdfFileName(resource.file_name)) {
+      return res.status(400).json({ message: "Seuls les fichiers PDF peuvent être affichés dans le navigateur." });
+    }
+
+    const filePath = path.join(__dirname, "..", "uploads", resource.file_path);
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: "Fichier introuvable sur le serveur." });
+    }
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", "inline");
+    return fs.createReadStream(filePath).pipe(res);
+  } catch (error) {
+    if (!res.headersSent) {
+      return res.status(500).json({ message: "Erreur serveur.", error: error.message });
+    }
+    return undefined;
   }
 });
 

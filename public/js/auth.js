@@ -12,6 +12,8 @@ const authMessage = document.getElementById("authMessage");
 const passwordInput = document.getElementById("password");
 const togglePasswordBtn = document.getElementById("togglePasswordBtn");
 const togglePasswordIcon = document.getElementById("togglePasswordIcon");
+const forgotPasswordStudentWrap = document.getElementById("forgotPasswordStudentWrap");
+const forgotPasswordBtn = document.getElementById("forgotPasswordBtn");
 const selectedRole = new URLSearchParams(window.location.search).get("role") || "student";
 
 if (!["student", "admin"].includes(selectedRole)) {
@@ -51,6 +53,7 @@ function updateMode() {
     emailInput.required = false;
     usernameInput.placeholder = "Ex: admin";
     switchModeBtn.classList.add("hidden");
+    if (forgotPasswordStudentWrap) forgotPasswordStudentWrap.classList.add("hidden");
     return;
   }
 
@@ -67,6 +70,7 @@ function updateMode() {
   emailInput.placeholder = "nom@etu.univ.ac.ma";
   switchModeBtn.classList.remove("hidden");
   switchModeBtn.textContent = "Pas de compte ? Créez un compte étudiant";
+  if (forgotPasswordStudentWrap) forgotPasswordStudentWrap.classList.remove("hidden");
 }
 
 switchModeBtn.addEventListener("click", () => {
@@ -74,6 +78,30 @@ switchModeBtn.addEventListener("click", () => {
     window.location.href = "/pages/student-register-start.html";
   }
 });
+
+if (forgotPasswordBtn) {
+  forgotPasswordBtn.addEventListener("click", async () => {
+    if (selectedRole !== "student") return;
+    const email = emailInput.value.trim();
+    if (!email) {
+      showAuthMessage("Indiquez d’abord votre email académique.", "warning");
+      return;
+    }
+    forgotPasswordBtn.disabled = true;
+    try {
+      const data = await apiRequest("/auth/student/forgot-password", "POST", { email });
+      const msg = data.message || "Demande traitée.";
+      showAuthMessage(
+        data.devResetLink ? `${msg} Lien de test : ${data.devResetLink}` : msg,
+        data.devResetLink ? "warning" : "success"
+      );
+    } catch (error) {
+      showAuthMessage(error.message);
+    } finally {
+      forgotPasswordBtn.disabled = false;
+    }
+  });
+}
 
 authForm.addEventListener("submit", async (event) => {
   event.preventDefault();

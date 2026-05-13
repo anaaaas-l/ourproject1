@@ -84,3 +84,59 @@ async function apiRequest(endpoint, method = "GET", body = null, isFormData = fa
     );
   }
 }
+
+async function authorizedDownload(endpoint) {
+  const headers = {};
+  const token = getToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, { headers });
+  if (!response.ok) {
+    const message = await readErrorMessage(response);
+    throw new Error(message);
+  }
+  const blob = await response.blob();
+  const cd = response.headers.get("Content-Disposition") || "";
+  let filename = "document";
+  const utfMatch = cd.match(/filename\*=UTF-8''([^;]+)/i);
+  const asciiMatch = cd.match(/filename="([^"]+)"/i) || cd.match(/filename=([^;\s]+)/i);
+  if (utfMatch) {
+    try {
+      filename = decodeURIComponent(utfMatch[1]);
+    } catch {
+      /* keep default */
+    }
+  } else if (asciiMatch) {
+    filename = asciiMatch[1].replace(/['"]/g, "");
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function authorizedPdfOpen(endpoint) {
+  const headers = {};
+  const token = getToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, { headers });
+  if (!response.ok) {
+    const message = await readErrorMessage(response);
+    throw new Error(message);
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
+  const win = window.open(url, "_blank", "noopener,noreferrer");
+  if (!win) {
+    URL.revokeObjectURL(url);
+    throw new Error("Autorisez les fenêtres popup pour afficher le PDF.");
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 120000);
+}

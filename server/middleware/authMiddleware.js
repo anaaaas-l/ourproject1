@@ -24,7 +24,27 @@ function adminRequired(req, res, next) {
   next();
 }
 
+function studentRequired(req, res, next) {
+  if (!req.user || req.user.role !== "student") {
+    return res.status(403).json({ message: "Accès réservé aux étudiants." });
+  }
+  next();
+}
+
+function studentOrAdminRequired(req, res, next) {
+  if (!req.user) {
+    return res.status(403).json({ message: "Authentification requise." });
+  }
+  const role = req.user.role;
+  if (role === "student" || role === "admin") {
+    return next();
+  }
+  return res.status(403).json({ message: "Accès réservé aux étudiants et administrateurs." });
+}
+
 module.exports = {
   authRequired,
   adminRequired,
+  studentRequired,
+  studentOrAdminRequired,
 };

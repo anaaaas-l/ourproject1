@@ -7,6 +7,7 @@ const pool = require("./config/db");
 const authRoutes = require("./routes/authRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
 const resourceRoutes = require("./routes/resourceRoutes");
+const studentDocumentRoutes = require("./routes/studentDocumentRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
@@ -21,6 +22,7 @@ app.use(express.static(path.join(__dirname, "..", "public")));
 app.use("/api/auth", authRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/resources", resourceRoutes);
+app.use("/api/student-documents", studentDocumentRoutes);
 app.use("/api/admin", adminRoutes);
 
 app.get("/api/health", (_, res) => {

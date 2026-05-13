@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Plateforme de Partage de Ressources</title>
+    <title>Documents entre étudiants</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -17,7 +17,7 @@
   <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
       <div class="container">
-        <a class="navbar-brand" href="/"><i class="fa-solid fa-book-open"></i> Ressources</a>
+        <a class="navbar-brand" href="/"><i class="fa-solid fa-users"></i> Documents entre étudiants</a>
         <div class="d-flex align-items-center gap-2">
           <div id="authButtons">
             <a class="btn btn-light btn-sm" href="/pages/accueil.html">Connexion / Inscription</a>
@@ -34,42 +34,90 @@
     <main class="container py-4">
       <div id="messageBox" class="alert hidden"></div>
 
-      <section class="row g-3 mb-4">
-        <div class="col-md-6">
-          <input id="searchInput" class="form-control" placeholder="Rechercher par titre ou mot-clé..." />
-        </div>
-        <div class="col-md-6">
-          <select id="filterCategory" class="form-select">
-            <option value="">Toutes les catégories</option>
-          </select>
-        </div>
-      </section>
-
-      <section class="card shadow-sm mb-4">
+      <section id="studentPeerSection" class="card shadow-sm mb-4 hidden border-primary border-opacity-25">
         <div class="card-body">
-          <h4><i class="fa-solid fa-upload"></i> Ajouter un document</h4>
-          <form id="uploadForm" class="row g-3 mt-1">
-            <div class="col-md-5">
+          <h4 class="text-primary"><i class="fa-solid fa-users"></i> Documents entre étudiants</h4>
+          <p class="text-muted small mb-3">
+            Partagez un document <strong>public</strong> (visible par tous les étudiants connectés) ou
+            <strong>privé</strong> : un code unique est généré ; seuls ceux qui ont le code peuvent le télécharger.
+          </p>
+
+          <form id="studentShareForm" class="row g-3 mb-4">
+            <div class="col-md-3">
+              <label class="form-label small mb-0">Titre</label>
               <input name="title" class="form-control" placeholder="Titre du document" required />
             </div>
-            <div class="col-md-4">
-              <select id="categorySelect" name="categoryId" class="form-select" required>
-                <option value="">Choisir...</option>
+            <div class="col-md-3">
+              <label class="form-label small mb-0">Catégorie</label>
+              <select id="peerCategorySelect" name="categoryId" class="form-select" required>
+                <option value="">Choisir…</option>
               </select>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
+              <label class="form-label small mb-0">Visibilité</label>
+              <select name="visibility" class="form-select" required>
+                <option value="public">Public (tous les étudiants)</option>
+                <option value="private">Privé (accès par code)</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label class="form-label small mb-0">Fichier</label>
               <input name="file" type="file" class="form-control" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp" required />
             </div>
-            <div class="col-12">
-              <button class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> Envoyer</button>
+            <div class="col-md-2 d-flex align-items-end">
+              <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-cloud-arrow-up"></i> Publier</button>
             </div>
           </form>
-        </div>
-      </section>
 
-      <section>
-        <h4 class="mb-3">Ressources disponibles</h4>
-        <div id="resourcesList" class="row g-3"></div>
+          <div id="studentShareCodeBanner" class="alert alert-warning hidden mb-3" role="alert"></div>
+
+          <div class="row g-4">
+            <div class="col-lg-7">
+              <h5 class="h6 text-secondary">Documents publics</h5>
+              <div class="row g-2 mb-3 align-items-end">
+                <div class="col-md-6">
+                  <label for="peerSearchInput" class="form-label small mb-0 text-muted">Recherche</label>
+                  <div class="input-group input-group-sm">
+                    <input
+                      id="peerSearchInput"
+                      class="form-control"
+                      type="search"
+                      placeholder="Titre ou nom de fichier…"
+                      autocomplete="off"
+                    />
+                    <button type="button" id="peerSearchBtn" class="btn btn-outline-primary">
+                      <i class="fa-solid fa-magnifying-glass"></i> Recherche
+                    </button>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label for="peerFilterCategory" class="form-label small mb-0 text-muted">Catégorie</label>
+                  <select id="peerFilterCategory" class="form-select form-select-sm">
+                    <option value="">Toutes les catégories</option>
+                  </select>
+                </div>
+              </div>
+              <div id="studentPublicDocsList" class="list-group small"></div>
+            </div>
+            <div class="col-lg-5">
+              <h5 class="h6 text-secondary">Ouvrir un document privé</h5>
+              <p class="small text-muted">Saisissez le code communiqué par l’étudiant qui a partagé le fichier.</p>
+              <div class="input-group mb-2">
+                <input id="privateDocCodeInput" type="text" class="form-control text-uppercase" placeholder="Code d’accès" autocomplete="off" />
+                <button id="privateDocResolveBtn" type="button" class="btn btn-outline-primary">Vérifier</button>
+              </div>
+              <div id="privateDocResolved" class="card bg-light hidden">
+                <div class="card-body py-2">
+                  <p class="mb-1 small"><strong id="privateDocResolvedTitle"></strong></p>
+                  <p class="mb-2 small text-muted" id="privateDocResolvedMeta"></p>
+                  <button id="privateDocDownloadBtn" type="button" class="btn btn-sm btn-success">
+                    <i class="fa-solid fa-file-arrow-down"></i> Télécharger
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
     </main>
 

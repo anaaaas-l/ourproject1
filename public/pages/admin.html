@@ -18,7 +18,9 @@
     <nav class="navbar navbar-dark bg-dark">
       <div class="container">
         <span class="navbar-brand">Administration</span>
-        <a href="/" class="btn btn-outline-light btn-sm">Retour</a>
+        <button type="button" id="adminLogoutBtn" class="btn btn-outline-light btn-sm">
+          Déconnexion
+        </button>
       </div>
     </nav>
 
@@ -26,18 +28,22 @@
       <div id="adminMessage" class="alert hidden"></div>
 
       <section class="mb-4">
-        <h4>Statistiques</h4>
-        <div id="statsContainer" class="row g-3"></div>
-      </section>
-
-      <section class="mb-4">
-        <h4>Documents en attente</h4>
-        <div id="pendingList"></div>
+        <h4>Documents partagés (étudiants)</h4>
+        <p class="text-muted small">
+          Tous les documents publics et privés déposés par les étudiants. En tant qu’administrateur, vous pouvez les consulter sans code d’accès et les supprimer.
+        </p>
+        <div id="adminStudentDocsList"></div>
       </section>
 
       <section class="mb-4">
         <h4>Comptes étudiants en attente</h4>
         <div id="pendingStudentsList"></div>
+      </section>
+
+      <section class="mb-4">
+        <h4>Tous les étudiants enregistrés</h4>
+        <p class="text-muted small">Comptes avec le rôle étudiant dans la base. La suppression retire aussi leurs documents partagés et ressources déposées.</p>
+        <div id="allStudentsList"></div>
       </section>
 
       <section>
