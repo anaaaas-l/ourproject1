@@ -31,88 +31,120 @@
       </div>
     </nav>
 
-    <main class="container py-4">
-      <div id="messageBox" class="alert hidden"></div>
+    <main class="container py-5">
+      <div id="messageBox" class="alert hidden mb-4"></div>
 
-      <section id="studentPeerSection" class="card shadow-sm mb-4 hidden border-primary border-opacity-25">
-        <div class="card-body">
-          <h4 class="text-primary"><i class="fa-solid fa-users"></i> Documents entre étudiants</h4>
-          <p class="text-muted small mb-3">
-            Partagez un document <strong>public</strong> (visible par tous les étudiants connectés) ou
-            <strong>privé</strong> : un code unique est généré ; seuls ceux qui ont le code peuvent le télécharger.
-          </p>
+      <section id="studentPeerSection" class="hidden">
+        <div class="row mb-4">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h4 class="section-title mb-0">
+                  <i class="fa-solid fa-users text-primary me-2"></i>Documents entre étudiants
+                </h4>
+                <p class="section-subtitle mb-0 mt-1">
+                  Partagez un document <strong>public</strong> (visible par tous) ou
+                  <strong>privé</strong> avec un code d'accès unique
+                </p>
+              </div>
+              <div class="card-body">
+                <form id="studentShareForm" class="row g-3">
+                  <div class="col-md-3">
+                    <label class="form-label">Titre du document</label>
+                    <input name="title" class="form-control" placeholder="Ex: TD1 Mathématiques" required />
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Catégorie</label>
+                    <select id="peerCategorySelect" name="categoryId" class="form-select" required>
+                      <option value="">Choisir une catégorie…</option>
+                    </select>
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label">Visibilité</label>
+                    <select name="visibility" class="form-select" required>
+                      <option value="public">🌐 Public</option>
+                      <option value="private">🔒 Privé</option>
+                    </select>
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label">Fichier</label>
+                    <input name="file" type="file" class="form-control" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp" required />
+                  </div>
+                  <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                      <i class="fa-solid fa-cloud-arrow-up me-2"></i>Publier
+                    </button>
+                  </div>
+                </form>
+                <div id="studentShareCodeBanner" class="alert alert-warning hidden mt-3" role="alert"></div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-          <form id="studentShareForm" class="row g-3 mb-4">
-            <div class="col-md-3">
-              <label class="form-label small mb-0">Titre</label>
-              <input name="title" class="form-control" placeholder="Titre du document" required />
+        <div class="row g-4">
+          <div class="col-lg-8">
+            <div class="card h-100">
+              <div class="card-header">
+                <h5 class="section-title mb-0">
+                  <i class="fa-solid fa-folder-open text-primary me-2"></i>Documents publics
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="row g-3 mb-4">
+                  <div class="col-md-6">
+                    <label class="form-label">Recherche</label>
+                    <div class="input-group">
+                      <input
+                        id="peerSearchInput"
+                        class="form-control"
+                        type="search"
+                        placeholder="Rechercher par titre…"
+                        autocomplete="off"
+                      />
+                      <button type="button" id="peerSearchBtn" class="btn btn-primary">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Filtrer par catégorie</label>
+                    <select id="peerFilterCategory" class="form-select">
+                      <option value="">Toutes les catégories</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="studentPublicDocsList"></div>
+              </div>
             </div>
-            <div class="col-md-3">
-              <label class="form-label small mb-0">Catégorie</label>
-              <select id="peerCategorySelect" name="categoryId" class="form-select" required>
-                <option value="">Choisir…</option>
-              </select>
-            </div>
-            <div class="col-md-2">
-              <label class="form-label small mb-0">Visibilité</label>
-              <select name="visibility" class="form-select" required>
-                <option value="public">Public (tous les étudiants)</option>
-                <option value="private">Privé (accès par code)</option>
-              </select>
-            </div>
-            <div class="col-md-2">
-              <label class="form-label small mb-0">Fichier</label>
-              <input name="file" type="file" class="form-control" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp" required />
-            </div>
-            <div class="col-md-2 d-flex align-items-end">
-              <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-cloud-arrow-up"></i> Publier</button>
-            </div>
-          </form>
+          </div>
 
-          <div id="studentShareCodeBanner" class="alert alert-warning hidden mb-3" role="alert"></div>
-
-          <div class="row g-4">
-            <div class="col-lg-7">
-              <h5 class="h6 text-secondary">Documents publics</h5>
-              <div class="row g-2 mb-3 align-items-end">
-                <div class="col-md-6">
-                  <label for="peerSearchInput" class="form-label small mb-0 text-muted">Recherche</label>
-                  <div class="input-group input-group-sm">
-                    <input
-                      id="peerSearchInput"
-                      class="form-control"
-                      type="search"
-                      placeholder="Titre ou nom de fichier…"
-                      autocomplete="off"
-                    />
-                    <button type="button" id="peerSearchBtn" class="btn btn-outline-primary">
-                      <i class="fa-solid fa-magnifying-glass"></i> Recherche
+          <div class="col-lg-4">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="section-title mb-0">
+                  <i class="fa-solid fa-key text-primary me-2"></i>Accès privé
+                </h5>
+                <p class="section-subtitle mb-0 mt-1 small">Saisissez un code pour accéder à un document privé</p>
+              </div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label">Code d'accès</label>
+                  <div class="input-group">
+                    <input id="privateDocCodeInput" type="text" class="form-control text-uppercase" placeholder="Ex: ABC123" autocomplete="off" />
+                    <button id="privateDocResolveBtn" type="button" class="btn btn-primary">
+                      <i class="fa-solid fa-unlock-keyhole"></i>
                     </button>
                   </div>
                 </div>
-                <div class="col-md-6">
-                  <label for="peerFilterCategory" class="form-label small mb-0 text-muted">Catégorie</label>
-                  <select id="peerFilterCategory" class="form-select form-select-sm">
-                    <option value="">Toutes les catégories</option>
-                  </select>
-                </div>
-              </div>
-              <div id="studentPublicDocsList" class="list-group small"></div>
-            </div>
-            <div class="col-lg-5">
-              <h5 class="h6 text-secondary">Ouvrir un document privé</h5>
-              <p class="small text-muted">Saisissez le code communiqué par l’étudiant qui a partagé le fichier.</p>
-              <div class="input-group mb-2">
-                <input id="privateDocCodeInput" type="text" class="form-control text-uppercase" placeholder="Code d’accès" autocomplete="off" />
-                <button id="privateDocResolveBtn" type="button" class="btn btn-outline-primary">Vérifier</button>
-              </div>
-              <div id="privateDocResolved" class="card bg-light hidden">
-                <div class="card-body py-2">
-                  <p class="mb-1 small"><strong id="privateDocResolvedTitle"></strong></p>
-                  <p class="mb-2 small text-muted" id="privateDocResolvedMeta"></p>
-                  <button id="privateDocDownloadBtn" type="button" class="btn btn-sm btn-success">
-                    <i class="fa-solid fa-file-arrow-down"></i> Télécharger
-                  </button>
+                <div id="privateDocResolved" class="card bg-light border-primary hidden">
+                  <div class="card-body">
+                    <h6 class="fw-bold mb-2" id="privateDocResolvedTitle"></h6>
+                    <p class="text-muted small mb-3" id="privateDocResolvedMeta"></p>
+                    <button id="privateDocDownloadBtn" type="button" class="btn btn-success w-100">
+                      <i class="fa-solid fa-file-arrow-down me-2"></i>Télécharger
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

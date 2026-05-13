@@ -113,33 +113,115 @@ async function loadStudentPublicDocs() {
     if (docs.length === 0) {
       const hasFilter = Boolean(peerSearch || categoryId);
       studentPublicDocsList.innerHTML = hasFilter
-        ? '<p class="text-muted small mb-0">Aucun document public ne correspond à votre recherche.</p>'
-        : '<p class="text-muted small mb-0">Aucun document public pour le moment.</p>';
+        ? '<p class="text-muted small mb-0 text-center py-5">Aucun document public ne correspond à votre recherche.</p>'
+        : '<p class="text-muted small mb-0 text-center py-5">Aucun document public pour le moment.</p>';
       return;
     }
-    studentPublicDocsList.innerHTML = docs
-      .map(
-        (d) => `
-      <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <div>
-          <span class="fw-medium">${escapeHtml(d.title)}</span>
-          <span class="text-muted small d-block">${escapeHtml(d.file_name || "")}</span>
-          <span class="text-muted small"><i class="fa-solid fa-layer-group"></i> ${escapeHtml(d.category_name || "—")}</span>
-          <span class="text-muted small d-block">${escapeHtml(d.uploader_name)} · ${escapeHtml(formatDateFr(d.created_at))}</span>
-        </div>
-        <div class="d-flex gap-1 flex-shrink-0">
-          ${
-            isPdfFileName(d.file_name)
-              ? `<button type="button" class="btn btn-sm btn-outline-primary student-peer-pdf-view" data-id="${d.id}" title="Voir le PDF"><i class="fa-solid fa-eye"></i></button>`
-              : ""
+    studentPublicDocsList.innerHTML = `
+      <div class="row g-4">
+        ${docs
+          .map(
+            (d) => {
+              const userReaction = d.user_reaction;
+              return `
+          <div class="col-md-6 col-lg-4" data-doc-id="${d.id}">
+            <div class="document-card h-100">
+              <div class="d-flex align-items-start gap-3 mb-3">
+                <div class="document-icon">
+                  <i class="fa-solid ${isPdfFileName(d.file_name) ? 'fa-file-pdf' : 'fa-file-lines'}"></i>
+                </div>
+                <div class="flex-grow-1">
+                  <h5 class="fw-bold mb-1 text-truncate">${escapeHtml(d.title)}</h5>
+                  <span class="badge bg-light text-primary fw-medium mb-2">
+                    <i class="fa-solid fa-layer-group me-1"></i>${escapeHtml(d.category_name || "—")}
+                  </span>
+                </div>
+              </div>
+              <div class="mb-3">
+                <p class="text-muted small mb-1"><i class="fa-solid fa-file me-2"></i>${escapeHtml(d.file_name || "")}</p>
+                <p class="text-muted small mb-0"><i class="fa-solid fa-user me-2"></i>${escapeHtml(d.uploader_name)}</p>
+                <p class="text-muted small"><i class="fa-solid fa-clock me-2"></i>${escapeHtml(formatDateFr(d.created_at))}</p>
+              </div>
+              <div class="mb-3">
+                <div class="d-flex gap-2">
+                  <button type="button" class="reaction-btn like-btn btn btn-outline-secondary flex-grow-1 student-react" data-id="${d.id}" data-type="like" data-liked="${userReaction === 'like'}">
+                    <i class="${userReaction === 'like' ? 'fa-solid fa-heart' : 'fa-regular fa-heart'}"></i>
+                    <span class="reaction-count">${Number(d.likes_count) || 0}</span>
+                  </button>
+                  <button type="button" class="reaction-btn dislike-btn btn btn-outline-secondary flex-grow-1 student-react" data-id="${d.id}" data-type="dislike" data-disliked="${userReaction === 'dislike'}">
+                    <i class="${userReaction === 'dislike' ? 'fa-solid fa-thumbs-down' : 'fa-regular fa-thumbs-down'}"></i>
+                    <span class="reaction-count">${Number(d.dislikes_count) || 0}</span>
+                  </button>
+                </div>
+              </div>
+              <div class="d-flex gap-2">
+                ${
+                  isPdfFileName(d.file_name)
+                    ? `<button type="button" class="btn btn-outline-primary flex-grow-1 student-peer-pdf-view" data-id="${d.id}">
+                         <i class="fa-solid fa-eye me-2"></i>Voir
+                       </button>`
+                    : ""
+                }
+                <button type="button" class="btn btn-primary flex-grow-1 student-peer-dl" data-id="${d.id}">
+                  <i class="fa-solid fa-download me-2"></i>Télécharger
+                </button>
+              </div>
+            </div>
+          </div>`;
+            }
+          )
+          .join("")}
+      </div>`;
+      
+    studentPublicDocsList.querySelectorAll(".student-react").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.getAttribute("data-id");
+        const type = btn.getAttribute("data-type");
+        const docCard = btn.closest(".document-card").parentElement;
+        
+        try {
+          const result = await apiRequest(`/student-documents/${id}/react`, "POST", { type });
+          
+          const likeBtn = docCard.querySelector(".like-btn");
+          const dislikeBtn = docCard.querySelector(".dislike-btn");
+          const likeCountEl = likeBtn.querySelector(".reaction-count");
+          const dislikeCountEl = dislikeBtn.querySelector(".reaction-count");
+          const likeIcon = likeBtn.querySelector("i");
+          const dislikeIcon = dislikeBtn.querySelector("i");
+          
+          let currentLikes = Number(likeCountEl.textContent);
+          let currentDislikes = Number(dislikeCountEl.textContent);
+          const wasLiked = likeBtn.classList.contains("active");
+          const wasDisliked = dislikeBtn.classList.contains("active");
+          
+          likeBtn.classList.remove("active");
+          dislikeBtn.classList.remove("active");
+          likeIcon.className = "fa-regular fa-heart";
+          dislikeIcon.className = "fa-regular fa-thumbs-down";
+          
+          if (result.reaction === 'like') {
+            likeBtn.classList.add("active");
+            likeIcon.className = "fa-solid fa-heart";
+            if (wasDisliked) currentDislikes = Math.max(0, currentDislikes - 1);
+            if (!wasLiked) currentLikes += 1;
+          } else if (result.reaction === 'dislike') {
+            dislikeBtn.classList.add("active");
+            dislikeIcon.className = "fa-solid fa-thumbs-down";
+            if (wasLiked) currentLikes = Math.max(0, currentLikes - 1);
+            if (!wasDisliked) currentDislikes += 1;
+          } else {
+            if (wasLiked) currentLikes = Math.max(0, currentLikes - 1);
+            if (wasDisliked) currentDislikes = Math.max(0, currentDislikes - 1);
           }
-          <button type="button" class="btn btn-sm btn-outline-primary student-peer-dl" data-id="${d.id}" title="Télécharger">
-            <i class="fa-solid fa-download"></i>
-          </button>
-        </div>
-      </div>`
-      )
-      .join("");
+          
+          likeCountEl.textContent = currentLikes;
+          dislikeCountEl.textContent = currentDislikes;
+          showMessage(result.message, "success");
+        } catch (e) {
+          showMessage(e.message, "danger");
+        }
+      });
+    });
     studentPublicDocsList.querySelectorAll(".student-peer-dl").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const id = btn.getAttribute("data-id");

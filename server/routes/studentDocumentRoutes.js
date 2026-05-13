@@ -33,6 +33,16 @@ async function ensureTable() {
     CREATE INDEX IF NOT EXISTS idx_student_shared_documents_category
     ON student_shared_documents (category_id) WHERE category_id IS NOT NULL
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS document_reactions (
+      id SERIAL PRIMARY KEY,
+      document_id INTEGER NOT NULL REFERENCES student_shared_documents(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      reaction_type VARCHAR(10) NOT NULL CHECK (reaction_type IN ('like', 'dislike')),
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      UNIQUE(document_id, user_id)
+    )
+  `);
 }
 
 router.get("/private/resolve", authRequired, studentRequired, async (req, res) => {
@@ -68,13 +78,17 @@ router.get("/", authRequired, studentRequired, async (req, res) => {
 
     let sql = `
       SELECT d.id, d.title, d.file_name, d.created_at, u.name AS uploader_name,
-             d.category_id, c.name AS category_name
+             d.category_id, c.name AS category_name,
+             COUNT(CASE WHEN r.reaction_type = 'like' THEN 1 END) AS likes_count,
+             COUNT(CASE WHEN r.reaction_type = 'dislike' THEN 1 END) AS dislikes_count,
+             COALESCE(MAX(CASE WHEN r.user_id = $1 THEN r.reaction_type END), NULL) AS user_reaction
       FROM student_shared_documents d
       JOIN users u ON d.user_id = u.id
       LEFT JOIN categories c ON c.id = d.category_id
+      LEFT JOIN document_reactions r ON d.id = r.document_id
       WHERE d.visibility = 'public'
     `;
-    const values = [];
+    const values = [req.user.id];
 
     if (search) {
       values.push(`%${search}%`);
@@ -90,10 +104,61 @@ router.get("/", authRequired, studentRequired, async (req, res) => {
       sql += ` AND d.category_id = $${values.length}`;
     }
 
-    sql += ` ORDER BY d.created_at DESC`;
+    sql += ` GROUP BY d.id, u.name, c.name ORDER BY d.created_at DESC`;
 
     const result = await pool.query(sql, values);
     return res.json(result.rows);
+  } catch (error) {
+    return res.status(500).json({ message: "Erreur serveur.", error: error.message });
+  }
+});
+
+router.post("/:id/react", authRequired, studentRequired, async (req, res) => {
+  try {
+    await ensureTable();
+    const { id } = req.params;
+    const { type } = req.body;
+    
+    if (!type || !['like', 'dislike', 'none'].includes(type)) {
+      return res.status(400).json({ message: "Type de réaction invalide." });
+    }
+    
+    const check = await pool.query(
+      "SELECT id, reaction_type FROM document_reactions WHERE document_id = $1 AND user_id = $2",
+      [id, req.user.id]
+    );
+    
+    if (type === 'none') {
+      if (check.rows.length > 0) {
+        await pool.query(
+          "DELETE FROM document_reactions WHERE document_id = $1 AND user_id = $2",
+          [id, req.user.id]
+        );
+      }
+      return res.json({ reaction: null, message: "Réaction retirée." });
+    }
+    
+    if (check.rows.length > 0) {
+      if (check.rows[0].reaction_type === type) {
+        await pool.query(
+          "DELETE FROM document_reactions WHERE document_id = $1 AND user_id = $2",
+          [id, req.user.id]
+        );
+        return res.json({ reaction: null, message: "Réaction retirée." });
+      } else {
+        await pool.query(
+          "UPDATE document_reactions SET reaction_type = $1 WHERE document_id = $2 AND user_id = $3",
+          [type, id, req.user.id]
+        );
+        return res.json({ reaction: type, message: type === 'like' ? "Document aimé !" : "Document pas aimé !" });
+      }
+    } else {
+      await pool.query(
+        "INSERT INTO document_reactions (document_id, user_id, reaction_type) VALUES ($1, $2, $3)",
+        [id, req.user.id, type]
+      );
+      return res.json({ reaction: type, message: type === 'like' ? "Document aimé !" : "Document pas aimé !" });
+    }
   } catch (error) {
     return res.status(500).json({ message: "Erreur serveur.", error: error.message });
   }

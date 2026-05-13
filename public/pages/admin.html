@@ -17,42 +17,79 @@
   <body>
     <nav class="navbar navbar-dark bg-dark">
       <div class="container">
-        <span class="navbar-brand">Administration</span>
-        <button type="button" id="adminLogoutBtn" class="btn btn-outline-light btn-sm">
-          Déconnexion
+        <span class="navbar-brand fw-bold">
+          <i class="fa-solid fa-shield-halved me-2"></i>Tableau de bord Admin
+        </span>
+        <button type="button" id="adminLogoutBtn" class="btn btn-outline-light">
+          <i class="fa-solid fa-right-from-bracket me-2"></i>Déconnexion
         </button>
       </div>
     </nav>
 
-    <main class="container py-4">
-      <div id="adminMessage" class="alert hidden"></div>
+    <main class="container py-5">
+      <div id="adminMessage" class="alert hidden mb-4"></div>
 
-      <section class="mb-4">
-        <h4>Documents partagés (étudiants)</h4>
-        <p class="text-muted small">
-          Tous les documents publics et privés déposés par les étudiants. En tant qu’administrateur, vous pouvez les consulter sans code d’accès et les supprimer.
-        </p>
-        <div id="adminStudentDocsList"></div>
+      <section class="mb-5">
+        <div class="card">
+          <div class="card-header">
+            <h4 class="section-title mb-0">
+              <i class="fa-solid fa-file-lines text-primary me-2"></i>Documents partagés
+            </h4>
+            <p class="section-subtitle mb-0 mt-1 small">
+              Tous les documents publics et privés déposés par les étudiants
+            </p>
+          </div>
+          <div class="card-body">
+            <div id="adminStudentDocsList"></div>
+          </div>
+        </div>
       </section>
 
-      <section class="mb-4">
-        <h4>Comptes étudiants en attente</h4>
-        <div id="pendingStudentsList"></div>
-      </section>
+      <div class="row g-4 mb-5">
+        <div class="col-lg-6">
+          <div class="card h-100">
+            <div class="card-header">
+              <h5 class="section-title mb-0">
+                <i class="fa-solid fa-user-clock text-primary me-2"></i>Comptes en attente
+              </h5>
+            </div>
+            <div class="card-body">
+              <div id="pendingStudentsList"></div>
+            </div>
+          </div>
+        </div>
 
-      <section class="mb-4">
-        <h4>Tous les étudiants enregistrés</h4>
-        <p class="text-muted small">Comptes avec le rôle étudiant dans la base. La suppression retire aussi leurs documents partagés et ressources déposées.</p>
-        <div id="allStudentsList"></div>
-      </section>
+        <div class="col-lg-6">
+          <div class="card h-100">
+            <div class="card-header">
+              <h5 class="section-title mb-0">
+                <i class="fa-solid fa-users text-primary me-2"></i>Tous les étudiants
+              </h5>
+            </div>
+            <div class="card-body">
+              <div id="allStudentsList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <section>
-        <h4>Gestion des catégories</h4>
-        <form id="addCategoryForm" class="d-flex gap-2 mb-3">
-          <input id="categoryName" class="form-control" placeholder="Nouvelle catégorie" required />
-          <button class="btn btn-primary" type="submit">Ajouter</button>
-        </form>
-        <ul id="categoriesList" class="list-group"></ul>
+        <div class="card">
+          <div class="card-header">
+            <h5 class="section-title mb-0">
+              <i class="fa-solid fa-tags text-primary me-2"></i>Gestion des catégories
+            </h5>
+          </div>
+          <div class="card-body">
+            <form id="addCategoryForm" class="d-flex gap-3 mb-4">
+              <input id="categoryName" class="form-control flex-grow-1" placeholder="Nom de la nouvelle catégorie" required />
+              <button class="btn btn-primary" type="submit">
+                <i class="fa-solid fa-plus me-2"></i>Ajouter
+              </button>
+            </form>
+            <div id="categoriesList"></div>
+          </div>
+        </div>
       </section>
     </main>
 
